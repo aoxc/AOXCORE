@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  /* User's Main Color: Lime (#C8FA01) replacing Cyan */
+  --color-cyan-500: #C8FA01;
+  --color-cyan-400: #D4FC45;
+  --color-cyan-600: #A6D100;
+  --color-cyan-950: #1A2100;
+
+  /* Additional System Colors */
+  --color-purple-500: #A855F7;
+  --color-pink-500: #EC4899;
+  --color-blue-500: #3B82F6;
+}
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-white antialiased overflow-hidden;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  }
+}
+
+@layer components {
+  .ledger-row {
+    @apply border-b border-white/5 hover:bg-white/[0.02] transition-colors;
+  }
+  
+  .cyan-glow {
+    box-shadow: 0 0 20px rgba(200, 250, 1, 0.15);
+  }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(200, 250, 1, 0.05);
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+  z-index: 100;
+}
