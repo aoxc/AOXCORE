@@ -1,47 +1,40 @@
-# Ana dizinde olduğundan emin ol
-cd ~/Work/AOXCORE
 
-# Master .gitignore dosyasını AI ve Özel Veri korumasıyla güncelle
-cat <<EOF > .gitignore
 # ==============================================================================
 # 🧠 AOXCORE PROTOCOL | NEURAL & BLOCKCHAIN HYBRID SPEC
-# VERSION: 7.0.0 "Sentinel-Shield" - Full Protection
+# VERSION: 7.1.0 "Sentinel-Shield" - Integrated Tree Protection
 # ==============================================================================
 
-# --- 🤖 AI & MACHINE LEARNING (MUST BE EXCLUDED) ---
-# Model ağırlıkları ve devasa veri setleri GitHub'a gitmemeli
+# --- 🤖 AI & DEEP LEARNING (EXCLUDE HEAVY ASSETS) ---
 **/model_hub/
 **/outputs/
+**/aoxcan_train_data/
 **/data/*.jsonl
-**/data/*.csv
 **/*.safetensors
 **/*.onnx
-**/*.bin
 **/*.pt
 **/*.pth
+**/*.bin
 
-# --- 🧪 TRAINING LOGS & RUNTIME ---
-**/runs/
-**/checkpoint-*/
+# --- ⚙️ KERNEL & SOURCE (LOCAL ONLY) ---
+# Kernel dosyalarını Git'te tutmak istemiyorsan (ağırlık yapmaması için) açabilirsin:
+**/evm_kernel/
+**/rust_kernel/
+**/solidity_specs/
+**/xlayer_specs/
+
+# --- 🧪 RUNTIME & SCRIPTS ---
 **/__pycache__/
 **/*.pyc
+**/chat/chat.1.py
+**/yedek/
 .ipynb_checkpoints/
+*.log
 
-# --- 🛠️ FOUNDRY & SMART CONTRACTS ---
+# --- 🛠️ SMART CONTRACTS & FOUNDRY ---
 /out/
 /cache/
 /artifacts/
 foundry.lock
-/lib/
-
-# --- 📦 DEPENDENCIES & WEB ---
-node_modules/
-dist/
-build/
-.vite/
-.yarn/
-!.yarn/patches/
-!.yarn/releases/
 
 # --- 🔐 SECRETS & NEURAL KEYS (CRITICAL) ---
 .env
@@ -50,38 +43,20 @@ build/
 *.key
 *.pem
 *.json.gpg
-secrets/
-.secret*
+**/secrets/
 **/config_private.py
 
-# --- 📡 BLOCKCHAIN & SENTINEL DATA ---
+# --- 📡 BLOCKCHAIN BROADCAST DATA ---
 broadcast/
 !broadcast/*/run-latest.json
 /broadcast/*/31337/
-/broadcast/**/dry-run/
 anvil.log
-*.trace
-
-# --- 📊 AUDIT & NEURAL REPORTS ---
-reports/
-coverage/
-*.lcov
-gas-report.txt
-.gas-snapshot
-neural-audit-results/
 
 # --- 💻 OS & IDE ---
 .DS_Store
-Thumbs.db
 .vscode/
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/settings.json
 .idea/
 *.swp
 *.bak
 *.tmp
-*.temp
-EOF
 
-echo "🛡️ Sentinel-Shield .gitignore (AI + Blockchain) aktif edildi."
