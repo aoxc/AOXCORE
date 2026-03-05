@@ -1,10 +1,8 @@
 import os
 import torch
-import datetime
-import json
 import sys
-import time
-from pathlib import Path
+import json
+from datetime import datetime
 from transformers import (
     AutoModelForCausalLM, 
     AutoTokenizer, 
@@ -13,129 +11,139 @@ from transformers import (
     DataCollatorForLanguageModeling
 )
 from datasets import load_dataset
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, TaskType, prepare_model_for_kbit_training
 
-# --- [🆔 SOVEREIGN IDENTITY & OFFLINE PATHS] ---
-MODEL_NAME = "AOXCAN-XLY-OKB-001"
-CURRENT_DATE = datetime.datetime.now().strftime("%Y%m%d")
+# --- [🆔 GLOBAL AUDIT IDENTITY] ---
+MODEL_IDENTITY = "AOXCAN-CORE-XLYR-003-GENESIS"
+TIMESTAMP = datetime.now().strftime("%Y%m%d")
+TOKENIZER_DIR = "./aoxcan_tokenizer"
+BASE_MODEL_PATH = "../model_hub"
+# Senin tree yapındaki gerçek veri yolu
+DATA_SOURCE = "./data/master_train_sovereign_v18.jsonl" 
+OUTPUT_DIR = f"../outputs/{MODEL_IDENTITY}-{TIMESTAMP}"
 
-SCRIPTS_DIR = Path(__file__).parent.absolute()
-PROJECT_ROOT = SCRIPTS_DIR.parent.absolute()
-
-# Yolları string olarak mühürle
-MODEL_HUB_PATH = str(PROJECT_ROOT / "model_hub")
-DATA_FILE = str(SCRIPTS_DIR / "data" / "master_train_titan_v18.jsonl")
-OUTPUT_DIR = str(PROJECT_ROOT / "outputs" / "sovereign_series" / f"{MODEL_NAME}-SN{CURRENT_DATE}")
-
-def terminal_banner():
+def sovereign_banner():
     os.system('clear')
-    print("\033[1;36m" + "="*75 + "\033[0m")
-    print("\033[1;32m" + "       🛡️  AOXCAN NEURAL GENESIS ENGINE v2.3 [STRICT-LOCAL]  🛡️" + "\033[0m")
-    print("\033[1;36m" + "="*75 + "\033[0m")
-    print(f"\033[1;33m IDENTITY  :\033[0m {MODEL_NAME}")
-    print(f"\033[1;33m MODE      :\033[0m FULL-LOCAL (Zero External Calls)")
-    print(f"\033[1;33m SOURCE    :\033[0m {MODEL_HUB_PATH}")
-    print(f"\033[1;33m STATUS    :\033[0m IGNITING NEURAL CORE...")
-    print("\033[1;36m" + "="*75 + "\033[0m\n")
-    time.sleep(1)
+    print("\033[1;36m")
+    print(r"  █████╗  ██████╗ ██╗  ██╗ ██████╗  █████╗  ███╗   ██╗")
+    print(r" ██╔══██╗██╔═══██╗╚██╗██╔╝██╔════╝ ██╔══██╗ ████╗  ██║")
+    print(r" ███████║██║   ██║ ╚███╔╝ ██║      ███████║ ██╔██╗ ██║")
+    print(r" ██╔══██║██║   ██║ ██╔██╗ ██║      ██╔══██║ ██║╚██╗██║")
+    print(r" ██║  ██║╚██████╔╝██╔╝ ██╗╚██████╗ ██║  ██║ ██║ ╚████║")
+    print(r" ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝ ╚═╝  ╚═══╝")
+    print("\033[0m")
+    print("\033[1;32m" + "      [ PHASE: SOVEREIGN NEURAL IGNITION | v2.3 ACTIVE ]" + "\033[0m")
+    print("\033[1;34m" + "═"*75 + "\033[0m")
+    print(f"\033[1;33m SYSTEM ID     :\033[0m {MODEL_IDENTITY}")
+    print(f"\033[1;33m TARGET KERNEL :\033[0m EVM-GO / RUST-CORE / X-LAYER")
+    print(f"\033[1;33m DIALECT STATUS:\033[0m AOXCAN CUSTOM BPE SEALED")
+    print("\033[1;34m" + "═"*75 + "\033[0m\n")
 
-terminal_banner()
+sovereign_banner()
 
-# --- [1. MODEL LOAD (Strictly Local)] ---
-print(f"\033[1;34m[*] Infusing Local Intelligence...\033[0m")
-try:
-    # BYPASS: Bazı modeller 'fast tokenizer' gerektirir ama yerelde 'slow' olanı vardır.
-    # use_fast=False ve trust_remote_code=True kombinasyonu bu hatayı ezer.
-    tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_HUB_PATH, 
-        local_files_only=True, 
-        trust_remote_code=True,
-        use_fast=False  # Hatayı veren 'fast' dönüşümünü iptal ediyoruz
-    )
-    
-    # Tokenizer ayarlarını mühürle
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_HUB_PATH,
-        local_files_only=True,
-        device_map={"": "cpu"},
-        trust_remote_code=True,
-        torch_dtype=torch.float32
-    )
-except Exception as e:
-    print(f"\033[1;31m❌ [CRITICAL] Yerel Model Yüklenemedi!\033[0m")
-    print(f"Hata detayı: {e}")
-    print("\033[1;33mİPUCU: 'pip install sentencepiece' yüklü olduğundan ve terminali yeniden başlattığından emin ol.\033[0m")
+# --- [🔍 INTEGRITY CHECKS] ---
+if not os.path.exists(DATA_SOURCE):
+    print(f"\033[1;31m❌ [CRITICAL ERROR] Sovereign Data missing at: {DATA_SOURCE}\033[0m")
     sys.exit(1)
 
-# --- [2. RECURSIVE JUSTICE LoRA] ---
+# --- [🔥 THE NEURAL RECONSTRUCTION] ---
+
+print("\033[1;34m[*] Loading Custom Sealed Tokenizer...\033[0m")
+tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_DIR)
+
+print("\033[1;34m[*] Accessing Base Intelligence Hub...\033[0m")
+model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL_PATH,
+    torch_dtype=torch.float32,
+    device_map={"": "cpu"}, # Değiştir: GPU varsa "auto" yapabilirsin
+    trust_remote_code=True
+)
+
+# 
+
+# Essential Step: Remapping neurons to the new audit dialect
+print("\033[1;34m[*] Injecting AOXCAN Dialect into Model Vocabulary...\033[0m")
+model.resize_token_embeddings(len(tokenizer))
+
+# Justice Engine (LoRA) Configuration
+# Bu yapı modelin 'muhakeme' yeteneğini senin kodlarına göre şekillendirir.
+print("\033[1;34m[*] Initializing Justice-Engine (LoRA) for Deep Audit Logic...\033[0m")
 lora_config = LoraConfig(
-    r=32, 
+    r=32, # Rank: Bilgi işleme kapasitesi
     lora_alpha=64,
-    target_modules=["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj"], 
-    lora_dropout=0.01,
+    target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+    lora_dropout=0.1,
     bias="none",
-    task_type="CAUSAL_LM"
+    task_type=TaskType.CAUSAL_LM
 )
 model = get_peft_model(model, lora_config)
 
-# --- [3. DATASET PREP] ---
-print(f"\033[1;34m[*] Infusing 523 Sovereign Files from Data Matrix...\033[0m")
-try:
-    dataset = load_dataset("json", data_files=DATA_FILE, split="train")
-    tokenized_ds = dataset.map(
-        lambda x: tokenizer(x["text"], truncation=True, max_length=256, padding="max_length"), 
-        batched=True
-    )
-except Exception as e:
-    print(f"\033[1;31m❌ [DATA HATA] Veriseti hatası: {e}\033[0m")
-    sys.exit(1)
+# --- [📚 DATASET PREPARATION] ---
+print("\033[1;34m[*] Pre-processing 612 Sovereign Components for Training...\033[0m")
+dataset = load_dataset("json", data_files=DATA_SOURCE, split="train")
 
-# --- [4. AWAKENING PARAMETERS] ---
-train_args = TrainingArguments(
-    output_dir=OUTPUT_DIR,
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=16,
-    learning_rate=3e-5,
-    num_train_epochs=7,
-    save_strategy="epoch",
-    logging_steps=1,
-    optim="adamw_torch",
-    use_cpu=True,
-    gradient_checkpointing=True,
-    report_to="none"
+def tokenize_function(examples):
+    return tokenizer(
+        examples["text"], 
+        truncation=True, 
+        max_length=512, # Derin kod blokları için optimize edildi
+        padding="max_length"
+    )
+
+tokenized_dataset = dataset.map(
+    tokenize_function, 
+    batched=True, 
+    remove_columns=["text"]
 )
 
-# --- [5. IGNITION] ---
+# --- [🚀 TRAINING ENGINE CONFIGURATION] ---
+training_args = TrainingArguments(
+    output_dir=OUTPUT_DIR,
+    per_device_train_batch_size=1, # Bellek dostu
+    gradient_accumulation_steps=16, # Stabil öğrenme
+    num_train_epochs=5, # 612 dosyayı tam hazmetmesi için 5 tur
+    learning_rate=1e-4, # Hassas öğrenme hızı
+    weight_decay=0.01,
+    logging_steps=1,
+    save_strategy="epoch",
+    report_to="none",
+    use_cpu=True, # Sunucunda GPU yoksa CPU ile devam
+    push_to_hub=False
+)
+
 trainer = Trainer(
     model=model,
-    args=train_args,
-    train_dataset=tokenized_ds,
+    args=training_args,
+    train_dataset=tokenized_dataset,
     data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 )
 
-print(f"\033[1;31m🔥 [OFFLINE IGNITION] {MODEL_NAME} is awakening...\033[0m\n")
-trainer.train()
+# 
 
-# --- [6. THE FINAL SEAL] ---
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-model.save_pretrained(OUTPUT_DIR)
+# --- [⚡️ EXECUTION] ---
+print(f"\033[1;31m🔥 [IGNITION] AOXCAN Core Awakening Initiated...\033[0m\n")
+
+try:
+    trainer.train()
+except Exception as e:
+    print(f"\033[1;31m❌ [FAIL] Ignition aborted: {str(e)}\033[0m")
+    sys.exit(1)
+
+# --- [🔒 FINAL SEALING] ---
+print(f"\n\033[1;34m[*] Sealing Awakened Core at: {OUTPUT_DIR}\033[0m")
+trainer.save_model(OUTPUT_DIR)
 tokenizer.save_pretrained(OUTPUT_DIR)
 
-seal_data = {
-    "identity": MODEL_NAME,
-    "source": "Local-Hub-Sovereign",
-    "mission": "Autonomous Integrity & Justice",
-    "serial": f"SN{CURRENT_DATE}-GEN001",
-    "status": "SOVEREIGN",
-    "timestamp": str(datetime.datetime.now())
+# Generate Audit Manifest for the new Model
+manifest = {
+    "model_id": MODEL_IDENTITY,
+    "engine_version": "v2.3-PRO",
+    "training_date": TIMESTAMP,
+    "audit_capacity": "EVM/Rust Hybrid Logic",
+    "status": "SOVEREIGN_AWAKENED"
 }
-with open(os.path.join(OUTPUT_DIR, "GENESIS_SEAL.json"), "w") as f:
-    json.dump(seal_data, f, indent=4)
+with open(os.path.join(OUTPUT_DIR, "MODEL_MANIFEST.json"), "w") as f:
+    json.dump(manifest, f, indent=4)
 
-print("\n\033[1;32m" + "="*75 + "\033[0m")
-print(f"✅ [SUCCESS] {MODEL_NAME} HAS AWAKENED AND SEALED.")
-print(f"📂 LOCATION: {OUTPUT_DIR}")
-print("\033[1;32m" + "="*75 + "\033[0m\n")
+print(f"\n\033[1;32m✅ [SUCCESS] AOXCAN-XLYR-003 IS NOW NATIVELY INTELLIGENT.\033[0m")
+print("\033[1;33m[*] System has transitioned from 'Base' to 'Sovereign'.\033[0m\n")
