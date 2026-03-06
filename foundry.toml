@@ -1,6 +1,6 @@
 [profile.default]
 # ==============================================================================
-# --- 🏗️ PROJECT STRUCTURE ---
+# --- 🏗️ AOXCAN PROJECT STRUCTURE ---
 # ==============================================================================
 src = "src"
 out = "out"
@@ -9,43 +9,42 @@ test = "test"
 script = "script"
 
 # ==============================================================================
-# --- 🔗 REMAPPINGS (Kısaltılmış & Modüler) ---
-# Artık importlar: "aoxc/core/AoxcCore.sol" şeklinde olacak.
+# --- 🔗 REMAPPINGS (7 Sentinels Architecture) ---
+# Artık importlar: "aoxcan/core/AoxcanCore.sol" şeklinde otonom olacak.
 # ==============================================================================
 remappings = [
     "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
     "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts",
     "forge-std=lib/forge-std/src",
-    "aoxc=src",
-    "aoxc-core=src/core",
-    "aoxc-finance=src/finance",
-    "aoxc-infra=src/infra",
-    "aoxc-gov=src/gov",
-    "aoxc-test=test",
-    "aoxc-interfaces=src/interfaces",
-    "aoxc-libraries=src/libraries",
-    "aoxc-abstract=src/abstract"
+    "aoxcan=src",
+    "aoxcan-core=src/aoxcan-core",
+    "aoxcan-gov=src/aoxcan-governance",
+    "aoxcan-treasury=src/aoxcan-treasury",
+    "aoxcan-overseer=src/aoxcan-overseer",
+    "aoxcan-security=src/aoxcan-security",
+    "aoxcan-infra=src/aoxcan-infrastructure",
+    "aoxcan-gate=src/aoxcan-gateway"
 ]
 
 # ==============================================================================
-# --- 🧠 COMPILER STRATEGY ---
+# --- 🧠 COMPILER & OPTIMIZATION ---
 # ==============================================================================
-solc_version = "0.8.33"
+solc_version = "0.8.20" # X-Layer ve modern EVM için daha stabil bir sürüm (veya senin 0.8.33 tercihin)
 optimizer = true
-optimizer_runs = 200
+optimizer_runs = 500 # Gaz maliyeti için biraz daha agresif optimizasyon
 via_ir = true
 
 # ==============================================================================
-# --- 🛡️ SECURITY & OUTPUT ---
+# --- 🛡️ SECURITY & VERIFICATION ---
 # ==============================================================================
 bytecode_hash = "none"
-extra_output = ["abi", "storageLayout"]
+extra_output = ["abi", "storageLayout", "metadata"]
 
 [fuzz]
-runs = 256
+runs = 1000 # Ciddiyet için fuzz test sayısını artırdık
 
 [rpc_endpoints]
-xlayer_testnet = "https://testrpc.xlayer.tech/terigon"
+xlayer_testnet = "https://testrpc.xlayer.tech"
 
 [etherscan]
 xlayer = { key = "${OKLINK_API_KEY}", url = "https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/xlayer" }
