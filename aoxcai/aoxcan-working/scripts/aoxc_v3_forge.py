@@ -1,186 +1,143 @@
-import os
-import sys
-import json
-import logging
-import torch
-import gc
+import os, sys, json, logging, torch, gc
 from datetime import datetime
-from typing import Optional
-
+from typing import Dict, Any, Optional
+from kaggle_secrets import UserSecretsClient
+from huggingface_hub import login
 from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    TrainingArguments,
-    Trainer,
-    DataCollatorForLanguageModeling,
-    TrainerCallback,
-    set_seed
+    AutoModelForCausalLM, AutoTokenizer, TrainingArguments, 
+    Trainer, DataCollatorForLanguageModeling, TrainerCallback, set_seed
 )
 from datasets import load_dataset
 from peft import LoraConfig, get_peft_model, TaskType
 
-# --- [💠 SYSTEM & OPTIMIZATION SHIELD] ---
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
+# --- [CORE CONFIGURATION] ---
 MODEL_IDENTITY = "AOXCAN-V3-OMEGA"
-TIMESTAMP = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+BASE_MODEL = "google/gemma-3-4b-it"
+INPUT_PATH = "/kaggle/input/aoxcan-v3-omega-core/v20_xlayer_justice_sync.jsonl"
+OUTPUT_DIR = f"/kaggle/working/outputs/{MODEL_IDENTITY}"
 set_seed(42)
 
-# Audit Loglama Sistemi
+# --- [ENTERPRISE LOGGING & AUTH] ---
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s | %(levelname)s | [AUDIT] %(message)s',
+    format='%(asctime)s | %(levelname)s | [%(name)s] %(message)s',
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("V3-COUNCIL-FORGE")
+logger = logging.getLogger("V3-CORE")
 
-# --- [📂 DYNAMIC DIRECTORY MAPPING] ---
-# Kodun çalıştığı yere göre (Kaggle vs Yerel) otomatik yol ayarı
-if os.path.exists("/kaggle/input"):
-    INPUT_DIR = "/kaggle/input/aoxcan-v3-omega-core"
-    MODEL_BASE = "google/gemma-3-4b-it" # Kaggle'da seçtiğimiz asil motor
-    OUTPUT_DIR = f"/kaggle/working/outputs/{MODEL_IDENTITY}"
-else:
-    # Yerel NS1 Yapısı
-    INPUT_DIR = "./data"
-    MODEL_BASE = "google/gemma-3-4b-it"
-    OUTPUT_DIR = f"./outputs/{MODEL_IDENTITY}"
+def initialize_auth():
+    """Hugging Face kimlik doğrulama protokolü."""
+    try:
+        token = UserSecretsClient().get_secret("HF_TOKEN")
+        login(token=token)
+        logger.info("HF_TOKEN authenticated successfully.")
+    except Exception as e:
+        logger.error(f"Authentication Failure: {e}")
+        sys.exit(1)
 
-os.makedirs(OUTPUT_DIR, exist_ok=True)
+# --- [RESOURCE MANAGEMENT] ---
+def cleanup_resources():
+    """VRAM ve RAM optimizasyonu."""
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
-class SovereignProgressCallback(TrainerCallback):
-    """Görsel İlerleme ve GPU Sağlık Takipçisi"""
-    def on_step_end(self, args, state, control, **kwargs):
-        if state.max_steps > 0:
-            progress = (state.global_step / state.max_steps) * 100
-            filled = int(40 * state.global_step // state.max_steps)
-            bar = '█' * filled + '░' * (40 - filled)
-            vram_usage = torch.cuda.memory_reserved() / 1024**3 if torch.cuda.is_available() else 0
-            
-            sys.stdout.write(
-                f'\r\033[1;32m[FORGE-AUDIT]\033[0m \033[1;36m{bar}\033[0m '
-                f'\033[1;33m{progress:>6.2f}%\033[0m | '
-                f'\033[1;34mStep: {state.global_step}/{state.max_steps}\033[0m | '
-                f'\033[1;35mVRAM: {vram_usage:.2f}GB\033[0m'
-            )
-            sys.stdout.flush()
+class AuditCallback(TrainerCallback):
+    """Süreç izleme ve telemetri."""
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if logs and "loss" in logs:
+            vram = torch.cuda.memory_reserved() / 1024**3 if torch.cuda.is_available() else 0
+            logger.info(f"Step: {state.global_step} | Loss: {logs['loss']:.4f} | VRAM: {vram:.2f}GB")
 
-def display_forge_banner():
-    banner = f"""
-    \033[1;33m╔{"═" * 75}╗
-    ║    AOXCAN V3-OMEGA | SOVEREIGN COUNCIL SYNTHESIS | GEMMA 3 HYBRID    ║
-    ╠{"═" * 75}╣
-    ║ [IGNITING NEURAL SOVEREIGNTY] | {TIMESTAMP} ║
-    ╚{"═" * 75}╝\033[0m
-    """
-    print(banner)
-
-# --- [🧠 NEURAL CORE INITIALIZATION] ---
-display_forge_banner()
-logger.info(f"Initializing V3 Council Architecture on {'GPU' if torch.cuda.is_available() else 'CPU'}")
-
-try:
-    # Tokenizer: Gemma 3'ün orijinal lisanını kullanıyoruz
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_BASE, trust_remote_code=True)
+# --- [ENGINE INITIALIZATION] ---
+def ignite_engine():
+    initialize_auth()
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    cleanup_resources()
+    
+    logger.info(f"Loading Neural Core: {BASE_MODEL}")
+    
+    # Tokenizer & Model Loading
+    tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
-
-    # Model: Kaggle T4 GPU x2 için optimize edildi
-    compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
-
+    
+    dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_BASE,
-        torch_dtype=compute_dtype,
+        BASE_MODEL,
+        torch_dtype=dtype,
         device_map="auto",
         trust_remote_code=True
     )
     
-    gc.collect()
-    torch.cuda.empty_cache()
-
-    # [V3 EXPANDED LORA - Orta Yol r=32]
-    lora_config = LoraConfig(
-        r=32, 
-        lora_alpha=64,
-        target_modules=["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    # LoRA Architecture
+    peft_config = LoraConfig(
+        r=32, lora_alpha=64,
+        target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
         lora_dropout=0.05,
-        bias="none",
         task_type=TaskType.CAUSAL_LM
     )
-    
-    model = get_peft_model(model, lora_config)
+    model = get_peft_model(model, peft_config)
     model.print_trainable_parameters()
-
-except Exception as e:
-    logger.error(f"Neural Initialization Failure: {str(e)}")
-    sys.exit(1)
-
-# --- [📊 DATASET INGESTION] ---
-logger.info("Ingesting Sovereign DNA (X-Layer Justice Sync)...")
-DATA_FILE = os.path.join(INPUT_DIR, "v20_xlayer_justice_sync.jsonl")
-
-dataset = load_dataset("json", data_files={"train": DATA_FILE}, split="train")
-
-def preprocess_function(examples):
-    return tokenizer(
-        examples["text"], 
-        truncation=True, 
-        max_length=1024,
-        padding="max_length"
-    )
-
-tokenized_dataset = dataset.map(
-    preprocess_function, 
-    batched=True, 
-    remove_columns=["text"],
-    desc="Processing Neural Data"
-)
-
-# --- [🚀 TRAINING ENGINE] ---
-training_args = TrainingArguments(
-    output_dir=OUTPUT_DIR,
-    per_device_train_batch_size=2,      # Gemma 3 4B için güvenli sınır
-    gradient_accumulation_steps=8,      # Toplam batch 16 korundu
-    num_train_epochs=2,                # Overfitting önleme (Orta yol)
-    learning_rate=1e-4,
-    lr_scheduler_type="cosine",
-    warmup_ratio=0.05,
-    weight_decay=0.01,
-    fp16=not torch.cuda.is_bf16_supported(),
-    bf16=torch.cuda.is_bf16_supported(),
-    save_strategy="no",                # Sadece final modeli alacağız
-    logging_steps=10,
-    report_to="none",
-    disable_tqdm=True
-)
-
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=tokenized_dataset,
-    data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
-    callbacks=[SovereignProgressCallback()]
-)
-
-# --- [⚡ SYNTHESIS PHASE] ---
-try:
-    logger.info("Starting X-Layer Sovereign Synthesis (V3 Awakening)...")
-    trainer.train()
-
-    # --- [💾 SEALING] ---
-    logger.info(f"Sealing Final OMEGA Core at: {OUTPUT_DIR}")
-    trainer.save_model(OUTPUT_DIR)
     
-    manifest = {
-        "identity": MODEL_IDENTITY,
-        "engine": "Gemma-3-4B-Instruct",
-        "status": "AWAKENED",
-        "last_sync": TIMESTAMP,
-        "audit_report": "STABLE_XLAYER_SYNTHESIS_SUCCESSFUL"
-    }
+    return model, tokenizer
+
+# --- [DATA PIPELINE] ---
+def prepare_data(tokenizer):
+    """Veri temizleme ve tokenize etme protokolü."""
+    if not os.path.exists(INPUT_PATH):
+        raise FileNotFoundError(f"Input missing: {INPUT_PATH}")
     
-    with open(os.path.join(OUTPUT_DIR, "COUNCIL_MANIFEST.json"), "w") as f:
-        json.dump(manifest, f, indent=4, ensure_ascii=False)
+    logger.info("Ingesting and filtering dataset...")
+    dataset = load_dataset("json", data_files={"train": INPUT_PATH}, split="train")
+    
+    # Audit-level filtering: Boş veya hatalı satırları temizle
+    dataset = dataset.filter(lambda x: x.get("text") and len(str(x["text"]).strip()) > 0)
+    
+    def tokenize_map(examples):
+        return tokenizer(
+            [str(t) for t in examples["text"]],
+            truncation=True, max_length=1024, padding="max_length"
+        )
+    
+    return dataset.map(tokenize_map, batched=True, remove_columns=["text"])
 
-    print(f"\n\n\033[1;32m✅ [SYSTEM CONFIRMED] {MODEL_IDENTITY} V3 IS LIVE.\033[0m")
-
-except Exception as e:
-    logger.error(f"Critical Forge Failure: {str(e)}")
+# --- [EXECUTION] ---
+if __name__ == "__main__":
+    try:
+        model, tokenizer = ignite_engine()
+        train_data = prepare_data(tokenizer)
+        
+        training_args = TrainingArguments(
+            output_dir=OUTPUT_DIR,
+            per_device_train_batch_size=2,
+            gradient_accumulation_steps=8,
+            num_train_epochs=2,
+            learning_rate=1e-4,
+            lr_scheduler_type="cosine",
+            warmup_ratio=0.05,
+            logging_steps=10,
+            fp16=not torch.cuda.is_bf16_supported(),
+            bf16=torch.cuda.is_bf16_supported(),
+            report_to="none",
+            save_strategy="no"
+        )
+        
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_data,
+            data_collator=DataCollatorForLanguageModeling(tokenizer, mlm=False),
+            callbacks=[AuditCallback()]
+        )
+        
+        logger.info("=== STARTING SOVEREIGN SYNTHESIS ===")
+        trainer.train()
+        
+        # Final Sealing
+        trainer.save_model(OUTPUT_DIR)
+        logger.info(f"✅ MISSION SUCCESSFUL: {MODEL_IDENTITY} SEALD AT {OUTPUT_DIR}")
+        
+    except Exception as fatal_error:
+        logger.error(f"CRITICAL FORGE FAILURE: {fatal_error}")
+        sys.exit(1)

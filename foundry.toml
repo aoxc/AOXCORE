@@ -13,23 +13,24 @@ script = "script"
 # Artık importlar: "aoxcan/core/AoxcanCore.sol" şeklinde otonom olacak.
 # ==============================================================================
 remappings = [
-    "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
-    "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts",
-    "forge-std=lib/forge-std/src",
-    "aoxcan=src",
-    "aoxcan-core=src/aoxcan-core",
-    "aoxcan-gov=src/aoxcan-governance",
-    "aoxcan-treasury=src/aoxcan-treasury",
-    "aoxcan-overseer=src/aoxcan-overseer",
-    "aoxcan-security=src/aoxcan-security",
-    "aoxcan-infra=src/aoxcan-infrastructure",
-    "aoxcan-gate=src/aoxcan-gateway"
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "aoxc-interfaces/=src/interfaces/",
+    "aoxc-libraries/=src/libraries/",
+    "aoxc-core/=src/core/",
+    "aoxc-finance/=src/finance/",
+    "aoxc-gov/=src/gov/",
+    "aoxc-infra/=src/infra/",
+    "aoxc-abstract/=src/abstract/",
+    "aoxc-access/=src/access/",
+    "aoxcan/=src/"
 ]
 
 # ==============================================================================
 # --- 🧠 COMPILER & OPTIMIZATION ---
 # ==============================================================================
-solc_version = "0.8.20" # X-Layer ve modern EVM için daha stabil bir sürüm (veya senin 0.8.33 tercihin)
+solc_version = "0.8.33" # X-Layer ve modern EVM için daha stabil bir sürüm (veya senin 0.8.33 tercihin)
 optimizer = true
 optimizer_runs = 500 # Gaz maliyeti için biraz daha agresif optimizasyon
 via_ir = true
